@@ -1,6 +1,10 @@
+using ChatApp.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.AddDbContext<DataDbContext>(opt =>
+    opt.UseSqlServer(builder.Configuration.GetConnectionString("Connection")));
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
