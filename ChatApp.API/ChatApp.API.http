@@ -1,6 +1,34 @@
 @ChatApp.API_HostAddress = http://localhost:5086
 
-GET {{ChatApp.API_HostAddress}}/weatherforecast/
+### Registrar usuário
+POST {{ChatApp.API_HostAddress}}/api/users/register
+Content-Type: application/json
+
+{
+  "name": "Diogo Mendes",
+  "email": "diogo@email.com",
+  "password": "123456"
+}
+
+###
+
+### Login
+POST {{ChatApp.API_HostAddress}}/api/users/login
+Content-Type: application/json
+
+{
+  "email": "diogo@email.com",
+  "password": "123456"
+}
+
+###
+
+### Buscar usuário por ID
+@userId = 60C07303-A07E-456F-8A62-41D0A848FD2D
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2MGMwNzMwMy1hMDdlLTQ1NmYtOGE2Mi00MWQwYTg0OGZkMmQiLCJlbWFpbCI6ImRpb2dvQGVtYWlsLmNvbSIsImp0aSI6IjUyYzkxMmE2LTM2NDctNDE5Mi1iZmYyLTg4NmI0MTkzYjQzNiIsImV4cCI6MTc3Mzc4MTY0MiwiaXNzIjoiTGlicmFyeU1hbmFnZW1lbnQiLCJhdWQiOiJMaWJyYXJ5TWFuYWdlbWVudENsaWVudCJ9.rbMzOIPJLYKxcEMnxCt267kP65QDXWoGQycaDmONqZE
+
+GET {{ChatApp.API_HostAddress}}/api/users/{{userId}}
+Authorization: Bearer {{token}}
 Accept: application/json
 
 ###
