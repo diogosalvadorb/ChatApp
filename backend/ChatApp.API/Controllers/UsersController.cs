@@ -32,6 +32,14 @@ namespace ChatApp.API.Controllers
             return Ok(new AuthResponse(token, UserHelpers.ToResponse(user)));
         }
 
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetByEmail([FromQuery] string email)
+        {
+            var user = await _userUseCases.GetByEmailAsync(email);
+            return Ok(UserHelpers.ToResponse(user));
+        }
+
         [HttpGet("{id}")]
         [Authorize]
         public async Task<IActionResult> GetById(Guid id)

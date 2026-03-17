@@ -46,6 +46,17 @@ builder.Services
         };
     });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowNext", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
+
 builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
@@ -59,6 +70,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseCors("AllowNext");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

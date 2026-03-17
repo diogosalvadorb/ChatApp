@@ -40,6 +40,12 @@ namespace ChatApp.Application.UseCases.Users
             return _authService.GenerateToken(user.Id, user.Email);
         }
 
+        public async Task<User> GetByEmailAsync(string email)
+        {
+            return await _userRepository.FindByEmailAsync(email)
+                ?? throw new NotFoundException(nameof(User), email);
+        }
+
         public async Task<User> GetByIdAsync(Guid id)
         {
             return await _userRepository.FindByIdAsync(id)
