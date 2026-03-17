@@ -7,5 +7,6 @@ namespace ChatApp.Domain.Ports.In
         Task<User> RegisterAsync(string name, string email, string password);
         Task<string> LoginAsync(string email, string password);
         Task<User> GetByIdAsync(Guid id);
+        Task<User> GetByEmailAsync(string email);
     }
 }
