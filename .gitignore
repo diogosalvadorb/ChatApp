@@ -31,7 +31,10 @@ x86/
 bld/
 [Oo]bj/
 [Oo]ut/
+!ChatApp.Domain/
+!ChatApp.Domain/Ports/
 !ChatApp.Domain/Ports/Out/
+!ChatApp.Domain/Ports/Out/**
 [Ll]og/
 [Ll]ogs/
 

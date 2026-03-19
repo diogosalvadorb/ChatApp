@@ -1,3 +1,5 @@
+using ChatApp.Application.UseCases.Contacts;
+using ChatApp.Application.UseCases.Messages;
 using ChatApp.Application.UseCases.Users;
 using ChatApp.Domain.Ports.In;
 using ChatApp.Domain.Ports.Out.Persistence;
@@ -20,9 +22,13 @@ builder.Services.AddDbContext<DataDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("Connection")));
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<IContactRepository, ContactRepository>();
 builder.Services.AddScoped<IAuthService, JwtAuthAdapter>();
 
 builder.Services.AddScoped<IUserUseCases, UserUseCases>();
+builder.Services.AddScoped<IMessageUseCases, MessageUseCases>();
+builder.Services.AddScoped<IContactUseCases, ContactUseCases>();
 
 builder.Services.AddOpenApi("v1", options =>
 {
