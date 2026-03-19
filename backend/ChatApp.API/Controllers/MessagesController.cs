@@ -26,7 +26,7 @@ namespace ChatApp.API.Controllers
             return Created(string.Empty, MessageHelpers.ToResponse(message));
         }
 
-        [HttpGet("conversation/{otherId:guid}")]
+        [HttpGet("conversation/{otherId}")]
         public async Task<IActionResult> GetConversation(
             Guid otherId,
             [FromQuery] int page = 1,
@@ -38,7 +38,7 @@ namespace ChatApp.API.Controllers
             return Ok(messages.Select(MessageHelpers.ToResponse));
         }
 
-        [HttpPatch("{messageId:guid}/read")]
+        [HttpPatch("{messageId}/read")]
         public async Task<IActionResult> MarkAsRead(Guid messageId)
         {
             await _messageUseCases.MarkAsReadAsync(messageId, MessageHelpers.GetCurrentUserId(User));
