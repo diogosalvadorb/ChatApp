@@ -12,10 +12,12 @@ namespace ChatApp.Infrastructure.Persistence.Configurations
             builder.Property(m => m.Content)
                 .IsRequired()
                 .HasMaxLength(4000);
+
             builder.HasOne(m => m.Sender)
                 .WithMany()
                 .HasForeignKey(m => m.SenderId)
                 .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasOne(m => m.Recipient)
                 .WithMany()
                 .HasForeignKey(m => m.RecipientId)
