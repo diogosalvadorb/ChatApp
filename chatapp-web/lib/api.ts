@@ -3,7 +3,7 @@ import { MessageResponse } from "@/types/message";
 import { UserResponse } from "@/types/user";
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5086";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://localhost:7037";
 
 function getToken() {
   return localStorage.getItem("token");
@@ -30,13 +30,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   auth: {
     register: (name: string, email: string, password: string) =>
-      request<UserResponse>("/auth/register", {
+      request<UserResponse>("/api/users/register", {
         method: "POST",
         body: JSON.stringify({ name, email, password }),
       }),
 
     login: (email: string, password: string) =>
-      request<UserResponse>("/auth/login", {
+      request<UserResponse>("/api/users/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       }),
