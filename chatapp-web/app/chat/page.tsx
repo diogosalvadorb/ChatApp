@@ -3,9 +3,10 @@
 import { MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
 import { AddContactModal } from "./components/add-contact-modal";
 import { ContactList } from "./components/contact-list";
+import { ChatArea } from "./components/chat-area";
+import { UserResponse } from "@/types/user";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -15,11 +16,14 @@ export default function ChatPage() {
     email: string;
   } | null>(null);
   const [isAddContactOpen, setIsAddContactOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<UserResponse | null>(
+    null,
+  );
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     const user = localStorage.getItem("user");
-
+    
     if (!token || !user) {
       router.push("/authentication");
       return;
@@ -80,7 +84,11 @@ export default function ChatPage() {
             </button>
           </div>
 
-          <ContactList currentUserId={currentUser.id} />
+          <ContactList
+            currentUserId={currentUser.id}
+            selectedContactId={selectedContact?.id}
+            onSelectContact={setSelectedContact}
+          />
         </div>
 
         <div className="border-t border-gray-100 p-4">
@@ -93,20 +101,29 @@ export default function ChatPage() {
         </div>
       </aside>
 
-      <main className="flex flex-1 items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100">
-            <MessageSquare size={32} className="text-blue-500" />
+      <main className="flex flex-1 overflow-hidden">
+        {selectedContact ? (
+          <div className="flex h-full w-full flex-col overflow-hidden">
+            <ChatArea
+              contact={selectedContact}
+              currentUserId={currentUser.id}
+            />
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800">
-              Selecione um contato para conversar
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Escolha um contato na lista ao lado para iniciar uma conversa
-            </p>
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-gray-50 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100">
+              <MessageSquare size={32} className="text-blue-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">
+                Selecione um contato para conversar
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Escolha um contato na lista ao lado para iniciar uma conversa
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </main>
 
       {isAddContactOpen && (
