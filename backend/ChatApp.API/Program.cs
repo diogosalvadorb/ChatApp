@@ -1,3 +1,4 @@
+using ChatApp.API.Hubs;
 using ChatApp.Application.UseCases.Contacts;
 using ChatApp.Application.UseCases.Messages;
 using ChatApp.Application.UseCases.Users;
@@ -29,6 +30,8 @@ builder.Services.AddScoped<IAuthService, JwtAuthAdapter>();
 builder.Services.AddScoped<IUserUseCases, UserUseCases>();
 builder.Services.AddScoped<IMessageUseCases, MessageUseCases>();
 builder.Services.AddScoped<IContactUseCases, ContactUseCases>();
+
+builder.Services.AddSignalR();
 
 builder.Services.AddOpenApi("v1", options =>
 {
@@ -80,6 +83,7 @@ app.UseCors("AllowNext");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.MapControllers();
 
