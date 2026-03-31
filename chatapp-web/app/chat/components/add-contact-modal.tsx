@@ -19,9 +19,10 @@ type FormData = z.infer<typeof schema>;
 
 interface AddContactModalProps {
   onClose: () => void;
+  onRequestSent?: () => void;
 }
 
-export function AddContactModal({ onClose }: AddContactModalProps) {
+export function AddContactModal({ onClose, onRequestSent }: AddContactModalProps) {
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -37,6 +38,7 @@ export function AddContactModal({ onClose }: AddContactModalProps) {
       await api.contacts.sendRequest(data.email);
 
       setSuccess(true);
+       onRequestSent?.();
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       const msg =

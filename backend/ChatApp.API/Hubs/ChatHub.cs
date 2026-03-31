@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using System.Security.Claims;
 
 namespace ChatApp.API.Hubs
 {
@@ -9,11 +8,11 @@ namespace ChatApp.API.Hubs
     {
         public override async Task OnConnectedAsync()
         {
-            var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier);
+            var userId = Context.User?.FindFirst("sub")?.Value;
 
-            if (userId != null)
+            if (!string.IsNullOrEmpty(userId))
             {
-                await Groups.AddToGroupAsync(Context.ConnectionId, userId.Value);
+                await Groups.AddToGroupAsync(Context.ConnectionId, userId);
             }
 
             await base.OnConnectedAsync();
@@ -21,11 +20,11 @@ namespace ChatApp.API.Hubs
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier);
+            var userId = Context.User?.FindFirst("sub")?.Value;
 
-            if (userId != null)
+            if (!string.IsNullOrEmpty(userId))
             {
-                await Groups.RemoveFromGroupAsync(Context.ConnectionId, userId.Value);
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, userId);
             }
 
             await base.OnDisconnectedAsync(exception);
