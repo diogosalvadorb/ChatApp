@@ -21,7 +21,9 @@ export function ContactList({
   onRegisterRefresh,
 }: ContactListProps) {
   const [contacts, setContacts] = useState<UserResponse[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<ContactRequestResponse[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<
+    ContactRequestResponse[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [showPending, setShowPending] = useState(false);
@@ -57,7 +59,7 @@ export function ContactList({
     (request: ContactRequestResponse) => {
       setPendingRequests((prev) => {
         if (prev.some((r) => r.id === request.id)) return prev;
-        setShowPending(true); 
+        setShowPending(true);
         return [...prev, request];
       });
     },
@@ -67,18 +69,20 @@ export function ContactList({
   const handleContactRequestUpdated = useCallback(
     (request: ContactRequestResponse) => {
       setPendingRequests((prev) => prev.filter((r) => r.id !== request.id));
-
       if (request.status === "Accepted") {
-        api.contacts.listContacts().then(setContacts).catch(() => {});
+        fetchData();
       }
     },
-    [],
+    [fetchData],
   );
 
-  
   useSignalR({
-    ReceiveContactRequest: handleContactRequestReceived as (...args: unknown[]) => void,
-    ContactRequestAccepted: handleContactRequestUpdated as (...args: unknown[]) => void,
+    ReceiveContactRequest: handleContactRequestReceived as (
+      ...args: unknown[]
+    ) => void,
+    ContactRequestAccepted: handleContactRequestUpdated as (
+      ...args: unknown[]
+    ) => void,
   });
 
   const handleAccept = async (requestId: string) => {
@@ -198,7 +202,7 @@ export function ContactList({
               onClick={() => onSelectContact(contact)}
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
                 selectedContactId === contact.id
-                  ? "bg-blue-50 ring-1 ring-inset ring-blue-100"
+                  ? "bg-blue-50 ring-1 ring-blue-100 ring-inset"
                   : "hover:bg-gray-50"
               }`}
             >
@@ -223,7 +227,7 @@ export function ContactList({
                 </p>
                 <p className="truncate text-xs text-gray-500">
                   {contact.email}
-                  </p>
+                </p>
               </div>
             </button>
           ))
