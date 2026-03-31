@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { Loader2, MessageSquare, Send } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { useSignalR } from "@/hooks/useSignalR";
 import { api } from "@/lib/api";
 import { MessageResponse } from "@/types/message";
 import { UserResponse } from "@/types/user";
-import { Loader2, Send, MessageSquare } from "lucide-react";
 
 interface ChatAreaProps {
   contact: UserResponse;
@@ -12,8 +14,7 @@ interface ChatAreaProps {
 }
 
 function formatTime(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleTimeString("pt-BR", {
+  return new Date(dateStr).toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -56,25 +57,21 @@ export function ChatArea({ contact, currentUserId }: ChatAreaProps) {
   const [text, setText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchMessages = useCallback(async () => {
-    try {
-      const data = await api.messages.conversation(contact.id);
-      setMessages(data);
-    } catch (err) {
-      console.error("Erro ao buscar mensagens", err);
-    }
+  const messageIdsRef = useRef<Set<string>>(new Set());
+  const contactIdRef = useRef(contact.id);
+
+  useEffect(() => {
+    contactIdRef.current = contact.id;
   }, [contact.id]);
 
-  // Mark unread messages as read
   const markUnread = useCallback(
     async (msgs: MessageResponse[]) => {
       const unread = msgs.filter(
         (m) => !m.isRead && m.recipientId === currentUserId,
       );
       await Promise.allSettled(
-        unread.map((m) => api.messages.markRead(m.id)),
+        unread.map((m) => api.messages.markRead(m.id))
       );
     },
     [currentUserId],
@@ -82,43 +79,69 @@ export function ChatArea({ contact, currentUserId }: ChatAreaProps) {
 
   useEffect(() => {
     let cancelled = false;
+    messageIdsRef.current = new Set();
 
     const init = async () => {
       setLoading(true);
+      setMessages([]);
       try {
         const data = await api.messages.conversation(contact.id);
         if (!cancelled) {
+          data.forEach((m) => messageIdsRef.current.add(m.id));
           setMessages(data);
           await markUnread(data);
         }
-      } catch (err) {
-        console.error(err);
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
 
     init();
-
-    // Poll every 3s
-    pollingRef.current = setInterval(async () => {
-      if (cancelled) return;
-      try {
-        const data = await api.messages.conversation(contact.id);
-        if (!cancelled) {
-          setMessages(data);
-          await markUnread(data);
-        }
-      } catch {}
-    }, 3000);
-
     return () => {
       cancelled = true;
-      if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [contact.id, fetchMessages, markUnread]);
+  }, [contact.id, markUnread]);
 
-  // Scroll to bottom on new messages
+  const handleReceiveMessage = useCallback(
+    (message: MessageResponse) => {
+      const isThisConversation =
+        (message.senderId === contactIdRef.current &&
+          message.recipientId === currentUserId) ||
+        (message.senderId === currentUserId &&
+          message.recipientId === contactIdRef.current);
+
+      if (!isThisConversation) return;
+      if (messageIdsRef.current.has(message.id)) return;
+
+      messageIdsRef.current.add(message.id);
+      setMessages((prev) => {
+        const filtered = prev.filter(
+          (m) => !(m.id.startsWith("temp-") && m.content === message.content),
+        );
+        return [...filtered, message];
+      });
+
+      if (message.recipientId === currentUserId) {
+        api.messages.markRead(message.id).catch(() => {});
+      }
+    },
+    [currentUserId],
+  );
+
+  const handleMessageRead = useCallback(
+    ({ messageId }: { messageId: string }) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, isRead: true } : m)),
+      );
+    },
+    [],
+  );
+
+  useSignalR({
+    ReceiveMessage: handleReceiveMessage as (...args: unknown[]) => void,
+    MessageRead: handleMessageRead as (...args: unknown[]) => void,
+  });
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -145,10 +168,7 @@ export function ChatArea({ contact, currentUserId }: ChatAreaProps) {
 
     try {
       await api.messages.sendMessage(contact.id, content);
-      const data = await api.messages.conversation(contact.id);
-      setMessages(data);
-    } catch (err) {
-      console.error("Erro ao enviar mensagem", err);
+    } catch {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setText(content);
     } finally {
@@ -223,8 +243,7 @@ export function ChatArea({ contact, currentUserId }: ChatAreaProps) {
                     const isMine = msg.senderId === currentUserId;
                     const isTemp = msg.id.startsWith("temp-");
                     const prevMsg = group.messages[idx - 1];
-                    const sameSenderAsPrev =
-                      prevMsg && prevMsg.senderId === msg.senderId;
+                    const sameSenderAsPrev = prevMsg?.senderId === msg.senderId;
 
                     return (
                       <div
@@ -232,7 +251,7 @@ export function ChatArea({ contact, currentUserId }: ChatAreaProps) {
                         className={`flex ${isMine ? "justify-end" : "justify-start"} ${sameSenderAsPrev ? "mt-0.5" : "mt-2"}`}
                       >
                         {!isMine && (
-                          <div className="mr-2 mt-auto flex w-7 shrink-0 items-end">
+                          <div className="mt-auto mr-2 flex w-7 shrink-0 items-end">
                             {!sameSenderAsPrev ? (
                               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600">
                                 {contact.name.charAt(0).toUpperCase()}
@@ -242,7 +261,6 @@ export function ChatArea({ contact, currentUserId }: ChatAreaProps) {
                             )}
                           </div>
                         )}
-
                         <div
                           className={`group flex max-w-[72%] flex-col gap-0.5 ${isMine ? "items-end" : "items-start"}`}
                         >
@@ -296,12 +314,11 @@ export function ChatArea({ contact, currentUserId }: ChatAreaProps) {
             rows={1}
             disabled={sending}
             className="max-h-28 flex-1 resize-none bg-transparent text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none disabled:opacity-50"
-            style={{ height: "auto" }}
           />
           <button
             onClick={handleSend}
             disabled={!text.trim() || sending}
-            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 active:scale-95"
+            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {sending ? (
               <Loader2 size={14} className="animate-spin" />

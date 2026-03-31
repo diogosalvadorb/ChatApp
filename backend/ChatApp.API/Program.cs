@@ -1,3 +1,4 @@
+using ChatApp.API.Hubs;
 using ChatApp.Application.UseCases.Contacts;
 using ChatApp.Application.UseCases.Messages;
 using ChatApp.Application.UseCases.Users;
@@ -30,6 +31,11 @@ builder.Services.AddScoped<IUserUseCases, UserUseCases>();
 builder.Services.AddScoped<IMessageUseCases, MessageUseCases>();
 builder.Services.AddScoped<IContactUseCases, ContactUseCases>();
 
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+});
+
 builder.Services.AddOpenApi("v1", options =>
 {
     options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
@@ -49,6 +55,24 @@ builder.Services
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+
+        opt.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/hubs/chat"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -80,6 +104,7 @@ app.UseCors("AllowNext");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.MapControllers();
 

@@ -5,6 +5,7 @@ import { CheckCircle, Loader2, UserPlus, X } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod";
+
 import { api } from "@/lib/api";
 
 const schema = z.object({
@@ -18,9 +19,10 @@ type FormData = z.infer<typeof schema>;
 
 interface AddContactModalProps {
   onClose: () => void;
+  onRequestSent?: () => void;
 }
 
-export function AddContactModal({ onClose }: AddContactModalProps) {
+export function AddContactModal({ onClose, onRequestSent }: AddContactModalProps) {
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -36,10 +38,12 @@ export function AddContactModal({ onClose }: AddContactModalProps) {
       await api.contacts.sendRequest(data.email);
 
       setSuccess(true);
-    } catch (err: any) {
+       onRequestSent?.();
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
       const msg =
-        err?.message?.toLowerCase().includes("conflict") ||
-        err?.message?.toLowerCase().includes("already")
+        error.message?.toLowerCase().includes("conflict") ||
+        error.message?.toLowerCase().includes("already")
           ? "Já existe uma solicitação para este contato."
           : "Não foi possível enviar a solicitação. Este endereço já está nos seus contatos";
       setErrorMsg(msg);

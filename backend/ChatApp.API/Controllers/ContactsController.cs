@@ -1,8 +1,10 @@
 ﻿using ChatApp.API.Helpers;
+using ChatApp.API.Hubs;
 using ChatApp.Domain.Ports.In;
 using ChatMVP.API.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using static ChatApp.Application.DTOs.ContactDTOs;
 
 namespace ChatApp.API.Controllers
@@ -13,16 +15,21 @@ namespace ChatApp.API.Controllers
     public class ContactsController : ControllerBase
     {
         private readonly IContactUseCases _contactUseCases;
-        public ContactsController(IContactUseCases contactUseCases)
+        IHubContext<ChatHub> _hubContext;
+
+        public ContactsController(IContactUseCases contactUseCases, IHubContext<ChatHub> hubContext)
         {
             _contactUseCases = contactUseCases;
+            _hubContext = hubContext;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetContacts()
         {
             var userId = MessageHelpers.GetCurrentUserId(User);
+
             var contacts = await _contactUseCases.GetContactsAsync(userId);
+
             return Ok(contacts);
         }
 
@@ -30,9 +37,16 @@ namespace ChatApp.API.Controllers
         public async Task<IActionResult> SendRequest([FromBody] SendContactRequestDto dto)
         {
             var requesterId = MessageHelpers.GetCurrentUserId(User);
+
             var request = await _contactUseCases.SendRequestAsync(requesterId, dto.AddresseeEmail);
 
-            return Created(string.Empty, ContactHelpers.ToResponse(request));
+            var response = ContactHelpers.ToResponse(request);
+
+            await _hubContext.Clients
+                .Group(request.AddresseeId.ToString())
+                .SendAsync("ReceiveContactRequest", response);
+
+            return Created(string.Empty, response);
         }
 
         [HttpPatch("{requestId}/accept")]
@@ -40,7 +54,18 @@ namespace ChatApp.API.Controllers
         {
             var userId = MessageHelpers.GetCurrentUserId(User);
             var request = await _contactUseCases.AcceptRequestAsync(requestId, userId);
-            return Ok(ContactHelpers.ToResponse(request));
+
+            var response = ContactHelpers.ToResponse(request);
+
+            await _hubContext.Clients
+                .Group(request.RequesterId.ToString())
+                .SendAsync("ContactRequestAccepted", response);
+
+            await _hubContext.Clients
+                .Group(request.AddresseeId.ToString())
+                .SendAsync("ContactRequestAccepted", response);
+
+            return Ok(response);
         }
 
         [HttpPatch("{requestId}/reject")]

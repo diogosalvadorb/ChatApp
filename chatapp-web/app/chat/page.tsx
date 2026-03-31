@@ -2,42 +2,57 @@
 
 import { MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { AddContactModal } from "./components/add-contact-modal";
-import { ContactList } from "./components/contact-list";
-import { ChatArea } from "./components/chat-area";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import { UserResponse } from "@/types/user";
+
+import { AddContactModal } from "./components/add-contact-modal";
+import { ChatArea } from "./components/chat-area";
+import { ContactList } from "./components/contact-list";
+
+type CurrentUser = {
+  id: string;
+  name: string;
+  email: string;
+};
 
 export default function ChatPage() {
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<{
-    id: string;
-    name: string;
-    email: string;
-  } | null>(null);
-  const [isAddContactOpen, setIsAddContactOpen] = useState(false);
-  const [selectedContact, setSelectedContact] = useState<UserResponse | null>(
-    null,
-  );
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => {
+    if (typeof window === "undefined") return null;
 
-  useEffect(() => {
     const token = localStorage.getItem("token");
     const user = localStorage.getItem("user");
-    
-    if (!token || !user) {
-      router.push("/authentication");
-      return;
-    }
 
-    setCurrentUser(JSON.parse(user));
-  }, [router]);
+    if (!token || !user) return null;
+
+    try {
+      return JSON.parse(user);
+    } catch {
+      return null;
+    }
+  });
+
+  const [isAddContactOpen, setIsAddContactOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<UserResponse | null>(null);
+
+  const refreshContactsRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (!currentUser) {
+      router.push("/authentication");
+    }
+  }, [currentUser, router]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-
-    router.push("/authentication");
+    setCurrentUser(null); // importante pra trigger do redirect
   };
+
+  const handleRequestSent = useCallback(() => {
+    refreshContactsRef.current?.();
+  }, []);
 
   if (!currentUser) return null;
 
@@ -88,6 +103,9 @@ export default function ChatPage() {
             currentUserId={currentUser.id}
             selectedContactId={selectedContact?.id}
             onSelectContact={setSelectedContact}
+            onRegisterRefresh={(fn) => {
+              refreshContactsRef.current = fn;
+            }}
           />
         </div>
 
@@ -127,7 +145,10 @@ export default function ChatPage() {
       </main>
 
       {isAddContactOpen && (
-        <AddContactModal onClose={() => setIsAddContactOpen(false)} />
+        <AddContactModal
+          onClose={() => setIsAddContactOpen(false)}
+          onRequestSent={handleRequestSent}
+        />
       )}
     </div>
   );

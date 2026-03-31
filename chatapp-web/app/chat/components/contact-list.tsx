@@ -1,8 +1,9 @@
 "use client";
 
-import { Loader2, UserCheck, Bell } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import { Bell, Loader2, UserCheck } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useSignalR } from "@/hooks/useSignalR";
 import { api } from "@/lib/api";
 import { ContactRequestResponse } from "@/types/contact";
 import { UserResponse } from "@/types/user";
@@ -11,13 +12,16 @@ interface ContactListProps {
   currentUserId: string;
   selectedContactId?: string;
   onSelectContact: (contact: UserResponse) => void;
+  onRegisterRefresh?: (fn: () => void) => void; // novo
 }
 
-export function ContactList({ currentUserId, selectedContactId, onSelectContact }: ContactListProps) {
+export function ContactList({
+  selectedContactId,
+  onSelectContact,
+  onRegisterRefresh,
+}: ContactListProps) {
   const [contacts, setContacts] = useState<UserResponse[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<
-    ContactRequestResponse[]
-  >([]);
+  const [pendingRequests, setPendingRequests] = useState<ContactRequestResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [showPending, setShowPending] = useState(false);
@@ -25,24 +29,57 @@ export function ContactList({ currentUserId, selectedContactId, onSelectContact 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-
       const [contactsData, pendingData] = await Promise.all([
         api.contacts.listContacts(),
         api.contacts.listContactPendingRequests(),
       ]);
-
       setContacts(contactsData);
       setPendingRequests(pendingData);
-    } catch (err) {
-      console.error("Erro ao carregar contatos", err);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  const onRegisterRefreshRef = useRef(onRegisterRefresh);
+  useEffect(() => {
+    onRegisterRefreshRef.current = onRegisterRefresh;
+  }, [onRegisterRefresh]);
+
+  useEffect(() => {
+    onRegisterRefreshRef.current?.(fetchData);
+  }, [fetchData]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleContactRequestReceived = useCallback(
+    (request: ContactRequestResponse) => {
+      setPendingRequests((prev) => {
+        if (prev.some((r) => r.id === request.id)) return prev;
+        setShowPending(true); 
+        return [...prev, request];
+      });
+    },
+    [],
+  );
+
+  const handleContactRequestUpdated = useCallback(
+    (request: ContactRequestResponse) => {
+      setPendingRequests((prev) => prev.filter((r) => r.id !== request.id));
+
+      if (request.status === "Accepted") {
+        api.contacts.listContacts().then(setContacts).catch(() => {});
+      }
+    },
+    [],
+  );
+
+  
+  useSignalR({
+    ReceiveContactRequest: handleContactRequestReceived as (...args: unknown[]) => void,
+    ContactRequestAccepted: handleContactRequestUpdated as (...args: unknown[]) => void,
+  });
 
   const handleAccept = async (requestId: string) => {
     try {
@@ -125,9 +162,9 @@ export function ContactList({ currentUserId, selectedContactId, onSelectContact 
                   disabled={actionLoadingId === req.id}
                   className="flex flex-1 items-center justify-center gap-1 rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
                 >
-                  {actionLoadingId === req.id ? (
+                  {actionLoadingId === req.id && (
                     <Loader2 size={10} className="animate-spin" />
-                  ) : null}
+                  )}
                   Aceitar
                 </button>
                 <button
@@ -184,7 +221,9 @@ export function ContactList({ currentUserId, selectedContactId, onSelectContact 
                 >
                   {contact.name}
                 </p>
-                <p className="truncate text-xs text-gray-500">{contact.email}</p>
+                <p className="truncate text-xs text-gray-500">
+                  {contact.email}
+                  </p>
               </div>
             </button>
           ))

@@ -1,8 +1,10 @@
-﻿using ChatApp.Application.DTOs;
+﻿using ChatApp.API.Hubs;
+using ChatApp.Application.DTOs;
 using ChatApp.Domain.Ports.In;
 using ChatMVP.API.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace ChatApp.API.Controllers
 {
@@ -12,18 +14,31 @@ namespace ChatApp.API.Controllers
     public class MessagesController : ControllerBase
     {
         private readonly IMessageUseCases _messageUseCases;
-        public MessagesController(IMessageUseCases messageUseCases)
+        private readonly IHubContext<ChatHub> _hubContext;
+        public MessagesController(IMessageUseCases messageUseCases, IHubContext<ChatHub> hubContext)
         {
             _messageUseCases = messageUseCases;
+            _hubContext = hubContext;
         }
 
         [HttpPost]
         public async Task<IActionResult> Send([FromBody] SendMessageRequest request)
         {
             var senderId = MessageHelpers.GetCurrentUserId(User);
+
             var message = await _messageUseCases.SendAsync(senderId, request.RecipientId, request.Content);
 
-            return Created(string.Empty, MessageHelpers.ToResponse(message));
+            var response = MessageHelpers.ToResponse(message);
+            
+            await _hubContext.Clients
+                .Group(request.RecipientId.ToString())
+                .SendAsync("ReceiveMessage", response);
+
+            await _hubContext.Clients
+                .Group(senderId.ToString())
+                .SendAsync("ReceiveMessage", response);
+
+            return Created(string.Empty, response);
         }
 
         [HttpGet("conversation/{otherId}")]
@@ -41,7 +56,13 @@ namespace ChatApp.API.Controllers
         [HttpPatch("{messageId}/read")]
         public async Task<IActionResult> MarkAsRead(Guid messageId)
         {
-            await _messageUseCases.MarkAsReadAsync(messageId, MessageHelpers.GetCurrentUserId(User));
+            var userId = MessageHelpers.GetCurrentUserId(User);
+
+            await _messageUseCases.MarkAsReadAsync(messageId, userId);
+
+            await _hubContext.Clients
+                .Group(userId.ToString())
+                .SendAsync("MessageRead", messageId);
 
             return NoContent();
         }

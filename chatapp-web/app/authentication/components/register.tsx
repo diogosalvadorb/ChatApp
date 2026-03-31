@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+
 import { api } from "@/lib/api";
 
 const registerSchema = z
@@ -60,14 +61,19 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
 
       localStorage.setItem("token", authData.token);
       localStorage.setItem("user", JSON.stringify(authData.user));
-      
+
       router.push("/chat");
-    } catch (err: any) {
-      const message = err?.response?.data?.message || err?.message;
-    
-      toast.error(message?.toLowerCase().includes("email")
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : (err as { response?: { data?: { message?: string } } })?.response
+              ?.data?.message;
+
+      toast.error(
+        message?.toLowerCase().includes("email")
           ? "Este e-mail já está em uso."
-          : message || "Erro ao criar conta."
+          : message || "Erro ao criar conta.",
       );
     }
   };
