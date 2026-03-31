@@ -1,7 +1,7 @@
 "use client";
 
-import { Loader2, UserCheck, Bell } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import { Bell, Loader2, UserCheck } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import { ContactRequestResponse } from "@/types/contact";
@@ -13,7 +13,11 @@ interface ContactListProps {
   onSelectContact: (contact: UserResponse) => void;
 }
 
-export function ContactList({ currentUserId, selectedContactId, onSelectContact }: ContactListProps) {
+export function ContactList({
+  currentUserId,
+  selectedContactId,
+  onSelectContact,
+}: ContactListProps) {
   const [contacts, setContacts] = useState<UserResponse[]>([]);
   const [pendingRequests, setPendingRequests] = useState<
     ContactRequestResponse[]
@@ -161,7 +165,7 @@ export function ContactList({ currentUserId, selectedContactId, onSelectContact 
               onClick={() => onSelectContact(contact)}
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
                 selectedContactId === contact.id
-                  ? "bg-blue-50 ring-1 ring-inset ring-blue-100"
+                  ? "bg-blue-50 ring-1 ring-blue-100 ring-inset"
                   : "hover:bg-gray-50"
               }`}
             >
@@ -184,7 +188,9 @@ export function ContactList({ currentUserId, selectedContactId, onSelectContact 
                 >
                   {contact.name}
                 </p>
-                <p className="truncate text-xs text-gray-500">{contact.email}</p>
+                <p className="truncate text-xs text-gray-500">
+                  {contact.email}
+                </p>
               </div>
             </button>
           ))

@@ -3,10 +3,12 @@
 import { MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AddContactModal } from "./components/add-contact-modal";
-import { ContactList } from "./components/contact-list";
-import { ChatArea } from "./components/chat-area";
+
 import { UserResponse } from "@/types/user";
+
+import { AddContactModal } from "./components/add-contact-modal";
+import { ChatArea } from "./components/chat-area";
+import { ContactList } from "./components/contact-list";
 
 export default function ChatPage() {
   const router = useRouter();

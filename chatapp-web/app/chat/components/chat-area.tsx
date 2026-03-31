@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { Loader2, MessageSquare,Send } from "lucide-react";
+import { useCallback,useEffect, useRef, useState } from "react";
+
 import { api } from "@/lib/api";
 import { MessageResponse } from "@/types/message";
 import { UserResponse } from "@/types/user";
-import { Loader2, Send, MessageSquare } from "lucide-react";
 
 interface ChatAreaProps {
   contact: UserResponse;
