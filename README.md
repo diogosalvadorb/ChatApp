@@ -16,6 +16,13 @@ Aplicação permite que usuários se cadastrem, adicionem contatos e troquem men
 
 ---
 
+## Melhorias
+
+- Token retornado do backend salvo em localstorage que fica suscetível script malicioso. Utilizar axios ou retornar cookies do backend e consumir nativamente com next.js
+- Exibir badge de mensagens não lidas
+
+---
+
 ### Arquitetura do Backend
 
 O projeto segue uma arquitetura em camadas no backend, nos princípios de **Ports & Adapters (Hexagonal Architecture)**.
