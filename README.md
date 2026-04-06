@@ -43,6 +43,7 @@ O projeto segue uma arquitetura em camadas no backend, nos princípios de **Port
 | Tecnologia | Versão | Uso |
 |-----------|--------|-----|
 | .NET | 9.0 | Plataforma principal |
+| ASP.NET Core | 9.0 | API REST |
 | SignalR | — | WebSocket para tempo real |
 | Entity Framework Core | 9.0 | ORM para SQL Server |
 | SQL Server | — | Banco de dados relacional |
